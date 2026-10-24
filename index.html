@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Abu Ragab Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 20px;
+      display: grid; place-items: center;
+      background: #101827; color: white;
+      font-family: Arial, sans-serif;
+      transition: background .2s, color .2s;
+    }
+    .app {
+      width: 100%; max-width: 390px; padding: 20px;
+      border-radius: 25px; background: #1d293b;
+      box-shadow: 0 15px 45px #0005;
+    }
+    header {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
+    }
+    h2 { font-size: 20px; margin: 8px 0 18px; }
+    .tools { display: flex; gap: 7px; }
+    .small {
+      background: #34445c; border: 0; color: white;
+      padding: 9px; border-radius: 10px; cursor: pointer;
+    }
+    #screen {
+      width: 100%; border: 0; outline: none;
+      background: #111c2d; color: white;
+      border-radius: 16px; padding: 20px 14px;
+      text-align: left; font-size: 32px;
+      direction: ltr; margin-bottom: 15px;
+    }
+    #message {
+      min-height: 20px; color: #a9bbd4;
+      font-size: 13px; margin: 0 0 12px;
+      overflow-wrap: anywhere;
+    }
+    .keys {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 9px;
+    }
+    .key {
+      border: 0; border-radius: 14px; min-height: 57px;
+      background: #34445c; color: white;
+      font-size: 21px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .key:active { transform: scale(.96); }
+    .op { background: #405b81; }
+    .danger { background: #a93648; }
+    .equal { background: #16a085; }
+    #history {
+      display: none; margin-top: 16px; padding: 12px;
+      border-radius: 12px; background: #111c2d;
+      max-height: 150px; overflow: auto;
+    }
+    .entry {
+      padding: 8px 0; border-bottom: 1px solid #34445c;
+      direction: ltr; text-align: left; overflow-wrap: anywhere;
+    }
+    footer { text-align: center; color: #9caec5; font-size: 12px; margin-top: 18px; }
+    body.light { background: #e8edf5; color: #172033; }
+    body.light .app { background: white; }
+    body.light #screen, body.light #history { background: #eef2f8; color: #172033; }
+    body.light .key { background: #e1e8f2; color: #172033; }
+    body.light .op { background: #c4d9f5; }
+    body.light .danger { background: #f5c6ce; }
+    body.light .equal { background: #a9ead8; }
+    body.light .small { background: #dbe4f0; color: #172033; }
+    body.light #message, body.light footer { color: #617087; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h2>🧮 Abu Ragab</h2>
+      <div class="tools">
+        <button class="small" onclick="toggleTheme()" aria-label="تغيير المظهر">🌙</button>
+        <button class="small" onclick="toggleHistory()">📋 السجل</button>
+      </div>
+    </header>
+
+    <input id="screen" value="0" readonly aria-label="شاشة الآلة الحاسبة">
+    <p id="message">آلة حاسبة بسيطة وسريعة</p>
+
+    <section class="keys">
+      <button class="key danger" onclick="clearAll()">AC</button>
+      <button class="key op" onclick="backspace()">⌫</button>
+      <button class="key op" onclick="percent()">%</button>
+      <button class="key op" onclick="add('÷')">÷</button>
+
+      <button class="key" onclick="add('7')">7</button>
+      <button class="key" onclick="add('8')">8</button>
+      <button class="key" onclick="add('9')">9</button>
+      <button class="key op" onclick="add('×')">×</button>
+
+      <button class="key" onclick="add('4')">4</button>
+      <button class="key" onclick="add('5')">5</button>
+      <button class="key" onclick="add('6')">6</button>
+      <button class="key op" onclick="add('-')">−</button>
+
+      <button class="key" onclick="add('1')">1</button>
+      <button class="key" onclick="add('2')">2</button>
+      <button class="key" onclick="add('3')">3</button>
+      <button class="key op" onclick="add('+')">+</button>
+
+      <button class="key op" onclick="sqrt()">√</button>
+      <button class="key" onclick="add('0')">0</button>
+      <button class="key" onclick="add('.')">.</button>
+      <button class="key equal" onclick="calculate()">=</button>
+    </section>
+
+    <section id="history">
+      <strong>سجل العمليات</strong>
+      <div id="entries"></div>
+      <button class="small" onclick="clearHistory()">مسح السجل</button>
+    </section>
+    <footer>Made with care · Abu Ragab Calculator</footer>
+  </main>
+
+<script>
+  const screen = document.getElementById('screen');
+  const message = document.getElementById('message');
+  const historyBox = document.getElementById('history');
+  let expression = '';
+  let history = [];
+
+  function update() {
+    screen.value = expression || '0';
+  }
+
+  function add(value) {
+    if (expression === 'خطأ') expression = '';
+    expression += value;
+    message.textContent = 'جاهز للحساب';
+    update();
+  }
+
+  function clearAll() {
+    expression = '';
+    message.textContent = 'تم مسح العملية';
+    update();
+  }
+
+  function backspace() {
+    expression = expression.slice(0, -1);
+    update();
+  }
+
+  function safeCalculate(input) {
+    if (!input || !/^[0-9+\-×÷().% ]+$/.test(input)) {
+      throw new Error('عملية غير صالحة');
+    }
+
+    let s = input.replace(/×/g, '*').replace(/÷/g, '/');
+    s = s.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+
+    // السماح بالأرقام والعمليات فقط بعد التحقق من المدخلات
+    if (!/^[0-9+\-*/(). ]+$/.test(s)) {
+      throw new Error('عملية غير صالحة');
+    }
+
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (!Number.isFinite(result)) throw new Error('لا يمكن إجراء العملية');
+    return Number(result.toPrecision(12));
+  }
+
+  function calculate() {
+    try {
+      const original = expression;
+      const result = safeCalculate(original);
+      history.unshift(original + ' = ' + result);
+      history = history.slice(0, 30);
+      localStorage.setItem('abuHistory', JSON.stringify(history));
+      expression = String(result);
+      message.textContent = original + ' = ' + result;
+      renderHistory();
+      update();
+    } catch (e) {
+      expression = '';
+      screen.value = 'خطأ';
+      message.textContent = 'راجع العملية وحاول مرة أخرى';
+    }
+  }
+
+  function percent() {
+    if (!expression) return;
+    try {
+      expression = String(safeCalculate(expression) / 100);
+      update();
+    } catch (e) {
+      message.textContent = 'راجع العملية أولاً';
+    }
+  }
+
+  function sqrt() {
+    try {
+      const value = safeCalculate(expression);
+      if (value < 0) throw new Error();
+      expression = String(Math.sqrt(value));
+      message.textContent = 'الجذر التربيعي';
+      update();
+    } catch (e) {
+      message.textContent = 'أدخل رقمًا موجبًا أولاً';
+    }
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('light');
+    localStorage.setItem(
+      'abuTheme',
+      document.body.classList.contains('light') ? 'light' : 'dark'
+    );
+  }
+
+  function toggleHistory() {
+    historyBox.style.display =
+      historyBox.style.display === 'block' ? 'none' : 'block';
+    renderHistory();
+  }
+
+  function renderHistory() {
+    document.getElementById('entries').innerHTML = '';
+    history.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.textContent = item;
+      document.getElementById('entries').appendChild(div);
+    });
+  }
+
+  function clearHistory() {
+    history = [];
+    localStorage.removeItem('abuHistory');
+    renderHistory();
+  }
+
+  try {
+    history = JSON.parse(localStorage.getItem('abuHistory') || '[]');
+    if (localStorage.getItem('abuTheme') === 'light') {
+      document.body.classList.add('light');
+    }
+  } catch (e) {}
+
+  renderHistory();
+  update();
+</script>
+</body>
+  </html>
